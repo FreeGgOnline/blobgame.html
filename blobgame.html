@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Blob Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #1e3c72, #2a5298); /* Modern gradient background */
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Scene, Camera, and Renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true; // Enable shadows
+        document.body.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Soft ambient light
+        scene.add(ambientLight);
+
+        const spotLight = new THREE.SpotLight(0xffffff, 1);
+        spotLight.position.set(15, 30, 15);
+        spotLight.castShadow = true; // Enable shadows
+        spotLight.shadow.mapSize.width = 2048;
+        spotLight.shadow.mapSize.height = 2048;
+        scene.add(spotLight);
+
+        // Floor
+        const floorGeometry = new THREE.PlaneGeometry(100, 100);
+        const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8, metalness: 0.2 });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true; // Enable shadow receiving
+        scene.add(floor);
+
+        // Player Sphere
+        const playerGeometry = new THREE.SphereGeometry(1, 64, 64);
+        const playerMaterial = new THREE.MeshStandardMaterial({ color: 0x0077ff, roughness: 0.4, metalness: 0.8 });
+        const player = new THREE.Mesh(playerGeometry, playerMaterial);
+        player.castShadow = true; // Enable shadow casting
+        scene.add(player);
+
+        // Bots
+        const bots = [];
+        const botGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+        const botMaterial = new THREE.MeshStandardMaterial({ color: 0xff4444, roughness: 0.6, metalness: 0.3 });
+
+        for (let i = 0; i < 30; i++) {
+            const bot = new THREE.Mesh(botGeometry, botMaterial);
+            bot.position.set(
+                Math.random() * 40 - 20,
+                0.5,
+                Math.random() * 40 - 20
+            );
+            bot.castShadow = true; // Enable shadow casting
+            bots.push(bot);
+            scene.add(bot);
+        }
+
+        // Camera Position
+        camera.position.set(0, 15, 30);
+        camera.lookAt(0, 0, 0);
+
+        // Mouse Movement
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        // Random Movement for Bots
+        function moveBotsRandomly() {
+            bots.forEach(bot => {
+                bot.position.x += (Math.random() - 0.5) * 0.2;
+                bot.position.z += (Math.random() - 0.5) * 0.2;
+            });
+        }
+
+        // Collision Detection
+        function checkCollisions() {
+            for (let i = bots.length - 1; i >= 0; i--) {
+                const bot = bots[i];
+                const dx = player.position.x - bot.position.x;
+                const dy = player.position.y - bot.position.y;
+                const dz = player.position.z - bot.position.z;
+                const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                if (distance < 1.5) { // Collision detected
+                    scene.remove(bot);
+                    bots.splice(i, 1);
+
+                    // Increase player size
+                    player.scale.x += 0.1;
+                    player.scale.y += 0.1;
+                    player.scale.z += 0.1;
+                }
+            }
+        }
+
+        // Game Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Move player toward mouse
+            player.position.x += (mouseX * 20 - player.position.x) * 0.05;
+            player.position.z += (mouseY * 20 - player.position.z) * 0.05;
+
+            // Move bots randomly
+            moveBotsRandomly();
+
+            // Check for collisions
+            checkCollisions();
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
